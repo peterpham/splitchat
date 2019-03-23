@@ -1,0 +1,145 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title></title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        textarea {
+            width:100%;
+            height:10rem;
+            display: block;
+            margin-bottom: 1rem;
+        }
+        [type=number] {
+            padding: .25em;
+            font-size: inherit;
+            width:5rem;
+        }
+        pre {
+            background:#ccc;
+            padding: 1rem;
+            font-size:.9rem;
+            background-color: rgb(246, 248, 250);
+            margin:0;
+            height: 200px;
+            overflow-y: auto;
+            border-bottom: 1px solid rgb(225, 228, 232);
+        }
+        #result {
+            margin-top:2rem;
+        }
+        .block {
+            margin-bottom: 1.5rem;
+            position: relative;
+            border: 1px solid rgb(225, 228, 232);
+        }
+        .bar {            
+            padding: .5rem;
+            display:flex;
+        }
+        .bar div {
+            flex:1;
+        }        
+        button {            
+            padding: .25em 1.25em;
+            font-size: inherit;
+            border-radius: 6px;
+            background-image: linear-gradient(-180deg, #fafbfc 0%, #eff3f6 90%);
+        }
+        template {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    
+    <textarea id="str" placeholder="Copy and paste a long chat here"></textarea>
+    <button type="button" id="submit">Split</button>
+    Max characters <input type="number" id="max" value="4000" min="1000" step="100" />
+
+    <div id="result"></div>
+    <template id="resultblock">
+        <div class="block">
+            <pre></pre>
+            <div class="bar">
+                <div>Part: <span class="part"></span> &nbsp;&nbsp;&nbsp; Count: <span class="count"></span></div>
+                <button type="button">Copy</button>
+            </div>
+        </div>
+    </template>
+</body>
+<script>
+const MAX = 4000;
+
+function splitString(str, delim) {
+    let words = str.split(' ');
+    const arr = str.split(delim);
+    let res = [''];
+    let maxCharacters = document.querySelector('#max').value || MAX;
+    do {
+        let i = '' + arr.shift();
+
+        if (i.length > maxCharacters) {
+            let subres = splitString(i, ' ');
+            arr.unshift(...subres);
+            continue;
+        } else {
+            i += delim;
+        }
+
+        if ((res[res.length-1].length + i.length) >= maxCharacters && res[res.length-1].trim() != '') 
+            res.push('');
+        res[res.length-1] += i;
+    } while (arr.length > 0);   
+    return res;
+}
+
+function split() {
+    const str = document.querySelector('#str').value;
+    const result = splitString(str, '\n');
+    document.querySelector('#result').innerHTML = '';
+    result.forEach((i, idx) => {        
+        let template = document.querySelector('#resultblock');
+        let clone = document.importNode(template.content, true);
+        i = i.trim();
+        clone.querySelector('pre').textContent = i;
+        clone.querySelector('.count').textContent = `${i.length} characters`;
+        clone.querySelector('.part').textContent = `${idx+1}/${result.length}`;
+        clone.querySelector('button').addEventListener('click', e => {
+            copyStringToClipboard(i);
+            e.target.innerText = 'Copied';
+            e.target.style.color = "green";
+           
+            setTimeout(() => {
+                e.target.innerText = 'Copy';
+                e.target.style.color = "inherit";
+            }, 2000);
+        })
+        document.querySelector('#result').appendChild(clone);
+    })
+}
+
+function copyStringToClipboard (str) {
+   // Create new element
+   var el = document.createElement('textarea');
+   // Set value (string to be copied)
+   el.value = str;
+   // Set non-editable to avoid focus and move outside of view
+   el.setAttribute('readonly', '');
+   el.style = {position: 'absolute', left: '-9999px'};
+   document.body.appendChild(el);
+   // Select text inside element
+   el.select();
+   // Copy text to clipboard
+   document.execCommand('copy');
+   // Remove temporary element
+   document.body.removeChild(el);
+}
+
+document.querySelector('#submit').onclick = split
+</script>
+</html>
